@@ -1,0 +1,12 @@
+export { default as BellIcon } from "./BellIcon";
+export { default as SearchIcon } from "./SearchIcon";
+export { default as UserIcon } from "./UserIcon";
+export { default as SettingsIcon } from "./SettingsIcon";
+export { default as HomeIcon } from "./HomeIcon";
+export { default as CurriculumIcon } from "./CurriculumIcon";
+export { default as AssigntimeIcon } from "./AssigntimeIcon";
+export { default as AssignmentIcon } from "./AssignmentIcon";
+export { default as FolderIcon } from "./FolderIcon";
+export { default as InsightsIcon } from "./InsightsIcon";
+export { default as DocumentIcon } from "./DocumentIcon";
+export { default as CurriculumManagementIcon } from "./CurriculumManagementIcon";
