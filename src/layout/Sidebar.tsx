@@ -4,13 +4,15 @@ import {
   ShoppingCart,
   Users,
   LogOut,
-  X
+  X,
+  DatabaseBackup
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../reducers/store";
 import { logout } from "../reducers/auth.reducer";
 
 const navItems = [
-  { name: "POS", path: "/", icon: <ShoppingCart /> },
+  { name: "Dashboard", path: "/", icon: <DatabaseBackup /> },
+  { name: "POS", path: "/pos", icon: <ShoppingCart /> },
   { name: "Farmer", path: "/farmer", icon: <Users /> },
 ];
 
@@ -42,6 +44,13 @@ export default function Sidebar() {
     }
   };
 
+  const isActiveRoute = (path: string) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname === path || location.pathname.startsWith(path + "/");
+  };
+
   return (
     <>
       <aside className="w-80 bg-white min-h-screen flex flex-col justify-between shadow-sm" role="navigation">
@@ -52,10 +61,7 @@ export default function Sidebar() {
 
           <nav className="flex flex-col gap-2 text-center" role="menu">
             {navItems.map((item) => {
-              const isActive =
-                item.path === "/"
-                  ? location.pathname === "/"
-                  : location.pathname.startsWith(item.path);
+              const isActive = isActiveRoute(item.path);
 
               return (
                 <div key={item.path} className="relative">
@@ -66,9 +72,9 @@ export default function Sidebar() {
                   <NavLink
                     to={item.path}
                     role="menuitem"
-                    className={`flex items-center w-64 ml-8 rounded-xl px-6 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                    className={`flex items-center w-64 ml-8 rounded-xl px-6 py-3 transition-colors  ${
                       isActive
-                        ? "bg-[#F6EFD7] text-primary-green font-bold"
+                        ? "bg-[#F6EFD7] text-green-700 font-bold"
                         : "text-gray-600 hover:bg-gray-100"
                     }`}
                   >
@@ -102,7 +108,7 @@ export default function Sidebar() {
 
       {showLogoutModal && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
           onClick={handleLogoutCancel}
           role="dialog"
           aria-modal="true"

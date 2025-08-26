@@ -76,7 +76,7 @@ const authSlice = createSlice({
       }
     },
     clearAuthError: (state) => {
-      // For future error handling
+      console.log("Clearing auth errors if any", state);
     },
   },
 });
