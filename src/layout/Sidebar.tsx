@@ -1,23 +1,25 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  AssignmentIcon,
-  AssigntimeIcon,
-  CurriculumIcon,
-  FolderIcon,
-  HomeIcon,
-  InsightsIcon,
-} from "../assets/svg/icons";
+  Home,
+  BookOpen,
+  BarChart3,
+  Clock,
+  HelpCircle,
+  FileText,
+  Library,
+  LogOut
+} from "lucide-react";
 import { useAppDispatch } from "../reducers/store";
 import { logout } from "../reducers/auth.reducer";
 
 const navItems = [
-  { name: "Dashboard", path: "/", icon: <HomeIcon /> },
-  { name: "Curriculum", path: "/curriculum", icon: <CurriculumIcon /> },
-  { name: "Insights", path: "/insights", icon: <InsightsIcon /> },
-  { name: "Assign Time", path: "/assign-time", icon: <AssigntimeIcon /> },
-  { name: "Generate Questions", path: "/generate-questions", icon: <InsightsIcon />,},
-  { name: "Assignment", path: "/assignment", icon: <AssignmentIcon /> },
-  { name: "Library", path: "/library", icon: <FolderIcon /> },
+  { name: "Dashboard", path: "/", icon: <Home /> },
+  { name: "Curriculum", path: "/curriculum", icon: <BookOpen /> },
+  { name: "Insights", path: "/insights", icon: <BarChart3 /> },
+  { name: "Assign Time", path: "/assign-time", icon: <Clock /> },
+  { name: "Generate Questions", path: "/generate-questions", icon: <HelpCircle /> },
+  { name: "Assignment", path: "/assignment", icon: <FileText /> },
+  { name: "Library", path: "/library", icon: <Library /> },
 ];
 
 export default function Sidebar() {
@@ -34,7 +36,7 @@ export default function Sidebar() {
     <aside className="w-80 bg-white min-h-screen flex flex-col justify-between shadow-sm">
       <div>
         <div className="w-full py-8 text-center text-4xl font-bold">
-          Admin Panel
+          UCF Admin Panel
         </div>
 
         <nav className="flex flex-col gap-2 text-center">
@@ -70,8 +72,9 @@ export default function Sidebar() {
       <div className="p-6 border-t border-gray-200">
         <button
           onClick={handleLogout}
-          className="w-full bg-red-100 text-red-700 font-medium py-2 px-4 rounded-lg hover:bg-red-200 transition"
+          className="w-full bg-red-100 text-red-700 font-medium py-2 px-4 rounded-lg hover:bg-red-200 transition flex items-center justify-center gap-2"
         >
+          <LogOut size={16} />
           Logout
         </button>
       </div>

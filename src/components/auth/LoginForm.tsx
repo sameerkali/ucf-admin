@@ -7,10 +7,23 @@ import { useAppDispatch } from "../../reducers/store";
 import { login } from "../../reducers/auth.reducer";
 import { BASE_URL } from "../../utils/constants";
 
+
 type LoginFormInputs = {
   email: string;
   password: string;
 };
+
+interface LoginResponse {
+  status: string;
+  token: string;
+  data: {
+    admin: {
+      id: string;
+      name: string;
+      email: string;
+    };
+  };
+}
 
 export default function LoginForm() {
   const navigate = useNavigate();
@@ -31,31 +44,51 @@ export default function LoginForm() {
     clearErrors();
 
     try {
-      const response = await axios.post(`${BASE_URL}api/admin/login`, {
+      const response = await axios.post<LoginResponse>(`${BASE_URL}api/admin/login`, {
         email,
         password,
       });
 
-      // Assuming successful response contains user data or token
-      if (response.data) {
+      if (response.data.status === "success" && response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userData", JSON.stringify(response.data.data.admin));
+
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
         dispatch(login());
         navigate("/");
+      } else {
+        setError("email", {
+          type: "manual",
+          message: "Login failed. Please try again.",
+        });
       }
     } catch (error: any) {
-      // Handle different types of errors
+      console.error("Login error:", error);
+      
       if (error.response?.status === 401) {
         setError("email", {
           type: "manual",
-          message: "Invalid credentials",
+          message: "Invalid email or password",
         });
         setError("password", {
           type: "manual",
-          message: "Invalid credentials",
+          message: "Invalid email or password",
         });
       } else if (error.response?.status === 400) {
         setError("email", {
           type: "manual",
           message: "Please check your email and password",
+        });
+      } else if (error.response?.status === 500) {
+        setError("email", {
+          type: "manual",
+          message: "Server error. Please try again later.",
+        });
+      } else if (error.code === "NETWORK_ERROR") {
+        setError("email", {
+          type: "manual",
+          message: "Network error. Please check your connection.",
         });
       } else {
         setError("email", {
@@ -81,7 +114,6 @@ export default function LoginForm() {
       onSubmit={handleSubmit(onSubmit)}
       className="max-w-sm w-full space-y-5"
     >
-      {/* Email Field */}
       <div>
         <label
           htmlFor="email"
@@ -111,7 +143,6 @@ export default function LoginForm() {
         )}
       </div>
 
-      {/* Password Field */}
       <div>
         <label
           htmlFor="password"
@@ -150,7 +181,6 @@ export default function LoginForm() {
         )}
       </div>
 
-      {/* Submit Button */}
       <div className="flex flex-col gap-3">
         <button
           type="submit"
@@ -165,7 +195,6 @@ export default function LoginForm() {
         </button>
       </div>
 
-      {/* Footer Links */}
       <div className="flex justify-between text-xs text-gray-400">
         <span className="cursor-not-allowed">Forgot Password?</span>
         <span className="cursor-not-allowed">Help</span>
