@@ -7,7 +7,6 @@ import { useAppDispatch } from "../../reducers/store";
 import { login } from "../../reducers/auth.reducer";
 import { BASE_URL } from "../../utils/constants";
 
-
 type LoginFormInputs = {
   email: string;
   password: string;
@@ -50,12 +49,10 @@ export default function LoginForm() {
       });
 
       if (response.data.status === "success" && response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("userData", JSON.stringify(response.data.data.admin));
-
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-
-        dispatch(login());
+        dispatch(login({
+          token: response.data.token,
+          user: response.data.data.admin,
+        }));
         navigate("/");
       } else {
         setError("email", {
@@ -113,18 +110,21 @@ export default function LoginForm() {
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="max-w-sm w-full space-y-5"
+      role="form"
+      aria-label="Login form"
     >
       <div>
         <label
           htmlFor="email"
           className="block text-sm font-medium text-primary mb-1"
         >
-          Email
+          Email *
         </label>
         <input
           id="email"
           type="email"
           placeholder="Enter your email"
+          aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email", { 
             required: "Email is required",
             pattern: {
@@ -139,7 +139,9 @@ export default function LoginForm() {
           }`}
         />
         {errors.email && (
-          <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+          <p id="email-error" className="text-red-500 text-xs mt-1" role="alert">
+            {errors.email.message}
+          </p>
         )}
       </div>
 
@@ -148,13 +150,14 @@ export default function LoginForm() {
           htmlFor="password"
           className="block text-sm font-medium text-primary mb-1"
         >
-          Password
+          Password *
         </label>
         <div className="relative">
           <input
             id="password"
             type={showPassword ? "text" : "password"}
             placeholder="Enter your password"
+            aria-describedby={errors.password ? "password-error" : undefined}
             {...register("password", { required: "Password is required" })}
             className={`w-full rounded-md px-4 py-2 pr-12 border outline-none text-sm transition ${
               errors.password
@@ -166,6 +169,8 @@ export default function LoginForm() {
             type="button"
             onClick={togglePasswordVisibility}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            tabIndex={0}
           >
             {showPassword ? (
               <EyeOff className="h-4 w-4" />
@@ -175,7 +180,7 @@ export default function LoginForm() {
           </button>
         </div>
         {errors.password && (
-          <p className="text-red-500 text-xs mt-1">
+          <p id="password-error" className="text-red-500 text-xs mt-1" role="alert">
             {errors.password.message}
           </p>
         )}
@@ -185,7 +190,8 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold py-2 rounded-md transition"
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold py-2 rounded-md transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+          aria-label={isSubmitting ? "Signing in..." : "Sign in"}
         >
           {isSubmitting ? (
             <Loader className="animate-spin mx-auto h-4 w-4" />
