@@ -1,62 +1,79 @@
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { Loader } from "lucide-react";
+import { Loader, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import axios from "axios";
 import { useAppDispatch } from "../../reducers/store";
 import { login } from "../../reducers/auth.reducer";
+import { BASE_URL } from "../../utils/constants";
 
 type LoginFormInputs = {
-  userId: string;
+  email: string;
   password: string;
 };
-
-const STATIC_USER_ID = "user_8932xyz";
-const STATIC_PASSWORD = "Str0ngP@ssw0rd!";
 
 export default function LoginForm() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
     setError,
-    setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<LoginFormInputs>();
 
-  const validateAndLogin = (id: string, pass: string) => {
+  const loginUser = async (email: string, password: string) => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      const isValid = id === STATIC_USER_ID && pass === STATIC_PASSWORD;
+    clearErrors();
 
-      if (isValid) {
+    try {
+      const response = await axios.post(`${BASE_URL}api/admin/login`, {
+        email,
+        password,
+      });
+
+      // Assuming successful response contains user data or token
+      if (response.data) {
         dispatch(login());
         navigate("/");
-      } else {
-        setError("userId", {
+      }
+    } catch (error: any) {
+      // Handle different types of errors
+      if (error.response?.status === 401) {
+        setError("email", {
           type: "manual",
-          message: "Incorrect ID",
+          message: "Invalid credentials",
         });
         setError("password", {
           type: "manual",
-          message: "Incorrect Password",
+          message: "Invalid credentials",
         });
-        setValue("userId", "");
-        setValue("password", "");
+      } else if (error.response?.status === 400) {
+        setError("email", {
+          type: "manual",
+          message: "Please check your email and password",
+        });
+      } else {
+        setError("email", {
+          type: "manual",
+          message: "Login failed. Please try again.",
+        });
       }
-
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   const onSubmit: SubmitHandler<LoginFormInputs> = (data) => {
-    validateAndLogin(data.userId, data.password);
+    loginUser(data.email, data.password);
   };
 
-  const loginAsGuest = () => {
-    validateAndLogin(STATIC_USER_ID, STATIC_PASSWORD);
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -64,27 +81,33 @@ export default function LoginForm() {
       onSubmit={handleSubmit(onSubmit)}
       className="max-w-sm w-full space-y-5"
     >
-      {/* Unique ID Field */}
+      {/* Email Field */}
       <div>
         <label
-          htmlFor="id"
+          htmlFor="email"
           className="block text-sm font-medium text-primary mb-1"
         >
-          Unique ID
+          Email
         </label>
         <input
-          id="id"
-          type="text"
-          placeholder="Enter your provided ID"
-          {...register("userId", { required: "Required" })}
+          id="email"
+          type="email"
+          placeholder="Enter your email"
+          {...register("email", { 
+            required: "Email is required",
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: "Invalid email address"
+            }
+          })}
           className={`w-full rounded-md px-4 py-2 border outline-none text-sm transition ${
-            errors.userId
+            errors.email
               ? "border-red-400 placeholder-red-500"
               : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           }`}
         />
-        {errors.userId && (
-          <p className="text-red-500 text-xs mt-1">{errors.userId.message}</p>
+        {errors.email && (
+          <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
         )}
       </div>
 
@@ -96,17 +119,30 @@ export default function LoginForm() {
         >
           Password
         </label>
-        <input
-          id="password"
-          type="password"
-          placeholder="Enter your password"
-          {...register("password", { required: "Required" })}
-          className={`w-full rounded-md px-4 py-2 border outline-none text-sm transition ${
-            errors.password
-              ? "border-red-400 placeholder-red-500"
-              : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          }`}
-        />
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter your password"
+            {...register("password", { required: "Password is required" })}
+            className={`w-full rounded-md px-4 py-2 pr-12 border outline-none text-sm transition ${
+              errors.password
+                ? "border-red-400 placeholder-red-500"
+                : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            }`}
+          />
+          <button
+            type="button"
+            onClick={togglePasswordVisibility}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        </div>
         {errors.password && (
           <p className="text-red-500 text-xs mt-1">
             {errors.password.message}
@@ -114,29 +150,17 @@ export default function LoginForm() {
         )}
       </div>
 
-      {/* Buttons */}
+      {/* Submit Button */}
       <div className="flex flex-col gap-3">
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 rounded-md transition"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold py-2 rounded-md transition"
         >
           {isSubmitting ? (
-            <Loader className="animate-spin mx-auto" />
+            <Loader className="animate-spin mx-auto h-4 w-4" />
           ) : (
             "Log In"
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={loginAsGuest}
-          disabled={isSubmitting}
-          className="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2 rounded-md transition"
-        >
-          {isSubmitting ? (
-            <Loader className="animate-spin mx-auto" />
-          ) : (
-            "Login as Guest"
           )}
         </button>
       </div>
