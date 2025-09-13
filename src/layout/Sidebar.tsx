@@ -16,7 +16,13 @@ const navItems = [
   { name: "Farmer", path: "/farmer", icon: <Users /> },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isMobileMenuOpen: boolean;
+  closeMobileMenu: () => void;
+  toggleMobileMenu: () => void;
+}
+
+export default function Sidebar({ isMobileMenuOpen, closeMobileMenu }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -31,10 +37,16 @@ export default function Sidebar() {
     dispatch(logout());
     setShowLogoutModal(false);
     navigate("/login");
+    closeMobileMenu();
   };
 
   const handleLogoutCancel = () => {
     setShowLogoutModal(false);
+  };
+
+  const handleNavLinkClick = () => {
+    // Close mobile menu when navigating
+    closeMobileMenu();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent, action: () => void) => {
@@ -53,26 +65,54 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="w-80 bg-white min-h-screen flex flex-col justify-between shadow-sm" role="navigation">
+      <aside 
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50
+          w-80 bg-white min-h-screen flex flex-col justify-between shadow-lg
+          transform transition-transform duration-300 ease-in-out
+          lg:translate-x-0 lg:shadow-sm
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+        role="navigation"
+      >
         <div>
-          <div className="w-full py-8 text-center text-4xl font-bold">
+          {/* Mobile Close Button */}
+          <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
+            <h2 className="text-lg font-bold text-gray-800">Menu</h2>
+            <button
+              onClick={closeMobileMenu}
+              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Desktop Title */}
+          <div className="hidden lg:block w-full py-8 text-center text-4xl font-bold">
             UCF Admin Panel
           </div>
 
-          <nav className="flex flex-col gap-2 text-center" role="menu">
+          {/* Mobile Title */}
+          <div className="lg:hidden w-full py-4 text-center text-2xl font-bold">
+            UCF Admin Panel
+          </div>
+
+          <nav className="flex flex-col gap-2 text-center px-4 lg:px-0" role="menu">
             {navItems.map((item) => {
               const isActive = isActiveRoute(item.path);
 
               return (
                 <div key={item.path} className="relative">
                   {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-12 w-2 bg-green-600 rounded-r-full" />
+                    <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 h-12 w-2 bg-green-600 rounded-r-full" />
                   )}
 
                   <NavLink
                     to={item.path}
+                    onClick={handleNavLinkClick}
                     role="menuitem"
-                    className={`flex items-center w-64 ml-8 rounded-xl px-6 py-3 transition-colors  ${
+                    className={`flex items-center w-full lg:w-64 lg:ml-8 rounded-xl px-6 py-3 transition-colors ${
                       isActive
                         ? "bg-[#F6EFD7] text-green-700 font-bold"
                         : "text-gray-600 hover:bg-gray-100"
@@ -106,6 +146,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
+      {/* Logout Modal */}
       {showLogoutModal && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
