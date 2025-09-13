@@ -711,7 +711,7 @@ const Farmer: React.FC = () => {
                       </div>
                       
                       <div className="space-y-4">
-                        {detailsModal.farmer.bankDetails.map((bank, index) => (
+                        {detailsModal.farmer.bankDetails.map((bank) => (
                           <div key={bank._id} className="border-l-4 border-[#01A63C] pl-4">
                             <div className="grid grid-cols-1 gap-2">
                               <div>
@@ -750,7 +750,7 @@ const Farmer: React.FC = () => {
                       </div>
                       
                       <div className="space-y-3">
-                        {detailsModal.farmer.otherDetails.map((detail, index) => (
+                        {detailsModal.farmer.otherDetails.map((detail) => (
                           <div key={detail._id}>
                             <div>
                               <label className="text-sm font-medium text-gray-500">Crops Handled</label>
