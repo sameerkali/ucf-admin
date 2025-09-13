@@ -1,9 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, AlertTriangle, X, ChevronLeft, ChevronRight, Plus, Store } from 'lucide-react';
+import { Search, Trash2, AlertTriangle, X, ChevronLeft, ChevronRight, Plus, Store, Eye, User, MapPin, Calendar, CheckCircle, XCircle, CreditCard, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAppSelector } from '../../reducers/store';
 import { BASE_URL } from '../../utils/constants';
+
+interface BankDetail {
+  _id: string;
+  bankName: string;
+  accountHolderName: string;
+  accountNumber: string;
+  ifscCode: string;
+  branch: string;
+  user: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface OtherDetail {
+  _id: string;
+  user: string;
+  role: string;
+  cropsHandled: string[];
+  crops: string[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface POS {
   _id: string;
@@ -18,6 +41,7 @@ interface POS {
   bankVerified: boolean;
   otherDetailsVerified: boolean;
   profileStatus: string;
+  authMethod?: string;
   address: {
     state: string;
     district: string;
@@ -28,7 +52,11 @@ interface POS {
   };
 }
 
-// Updated interface to match actual API response
+interface POSDetails extends POS {
+  bankDetails?: BankDetail[];
+  otherDetails?: OtherDetail[];
+}
+
 interface GetPOSResponse {
   success: boolean;
   page: number;
@@ -62,10 +90,18 @@ const POS: React.FC = () => {
   const [totalPOS, setTotalPOS] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  
+  // Modal states
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     pos: POS | null;
   }>({ isOpen: false, pos: null });
+
+  const [detailsModal, setDetailsModal] = useState<{
+    isOpen: boolean;
+    pos: POSDetails | null;
+    loading: boolean;
+  }>({ isOpen: false, pos: null, loading: false });
 
   const ITEMS_PER_PAGE = 8;
 
@@ -84,7 +120,7 @@ const POS: React.FC = () => {
     }
   });
 
-  // Fetch POS data - FIXED
+  // Fetch POS data
   const fetchPOSList = async (page: number = currentPage, name: string = searchTerm) => {
     if (!token) {
       toast.error('Authentication token not found');
@@ -113,7 +149,6 @@ const POS: React.FC = () => {
       const data: GetPOSResponse = response.data;
       
       if (data.success) {
-        // FIXED: Direct access to response fields
         setPOSList(data.users);
         setTotalPages(data.totalPages);
         setTotalPOS(data.totalUsers);
@@ -133,13 +168,55 @@ const POS: React.FC = () => {
     }
   };
 
+  // Fetch POS details
+  const fetchPOSDetails = async (posId: string) => {
+    if (!token) {
+      toast.error('Authentication token not found');
+      return;
+    }
+
+    setDetailsModal(prev => ({ ...prev, loading: true }));
+    try {
+      const response = await axios.post(`${BASE_URL}api/admin/get-user-details`, {
+        id: posId,
+        role: "POS"
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success && response.data.data && response.data.data.length > 0) {
+        setDetailsModal(prev => ({ 
+          ...prev, 
+          pos: response.data.data[0],
+          loading: false 
+        }));
+      } else {
+        toast.error('Failed to fetch POS details');
+        setDetailsModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error: any) {
+      console.error('Error fetching POS details:', error);
+      toast.error('Failed to fetch POS details');
+      setDetailsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   // Handle search
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
   };
 
-  // Handle create POS - FIXED URL
+  // Handle view details
+  const handleViewDetails = (pos: POS) => {
+    setDetailsModal({ isOpen: true, pos: null, loading: true });
+    fetchPOSDetails(pos._id);
+  };
+
+  // Handle create POS
   const handleCreatePOS = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -148,7 +225,6 @@ const POS: React.FC = () => {
       return;
     }
 
-    // Basic validation
     if (!formData.name || !formData.email || !formData.password || !formData.mobile) {
       toast.error('Please fill in all required fields');
       return;
@@ -196,7 +272,7 @@ const POS: React.FC = () => {
     }
   };
 
-  // Handle delete - FIXED URL
+  // Handle delete
   const handleDelete = async (pos: POS) => {
     if (!token) {
       toast.error('Authentication token not found');
@@ -268,6 +344,16 @@ const POS: React.FC = () => {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
+    });
+  };
+
+  const formatDetailedDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -482,13 +568,22 @@ const POS: React.FC = () => {
                         {formatDate(pos.createdAt)}
                       </td>
                       <td className="px-4 md:px-6 py-4 text-right">
-                        <button
-                          onClick={() => setDeleteModal({ isOpen: true, pos })}
-                          className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete POS"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleViewDetails(pos)}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Details
+                          </button>
+                          <button
+                            onClick={() => setDeleteModal({ isOpen: true, pos })}
+                            className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete POS"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -587,7 +682,7 @@ const POS: React.FC = () => {
 
       {/* Create POS Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleCreatePOS} className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -750,9 +845,259 @@ const POS: React.FC = () => {
         </div>
       )}
 
+      {/* POS Details Modal */}
+      {detailsModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">POS Details</h2>
+                <button
+                  onClick={() => setDetailsModal({ isOpen: false, pos: null, loading: false })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {detailsModal.loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01A63C]"></div>
+                  <span className="ml-3 text-gray-500">Loading POS details...</span>
+                </div>
+              ) : detailsModal.pos ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Personal Information */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <User className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">POS Information</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <div className="h-16 w-16 rounded-full bg-[#01A63C] flex items-center justify-center mr-4">
+                          <span className="text-xl font-bold text-white">
+                            {detailsModal.pos.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-900">{detailsModal.pos.name}</h4>
+                          <p className="text-sm text-gray-500">POS Operator</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Email</label>
+                          <p className="text-sm text-gray-900">{detailsModal.pos.email}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Mobile Number</label>
+                          <p className="text-sm text-gray-900">{detailsModal.pos.mobile}</p>
+                        </div>
+                        
+                        {detailsModal.pos.authMethod && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">Authentication Method</label>
+                            <p className="text-sm text-gray-900 capitalize">{detailsModal.pos.authMethod}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Information */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <MapPin className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Address Information</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Complete Address</label>
+                        <p className="text-sm text-gray-900">
+                          {detailsModal.pos.address.village}, {detailsModal.pos.address.block},<br />
+                          {detailsModal.pos.address.tehsil}, {detailsModal.pos.address.district},<br />
+                          {detailsModal.pos.address.state} - {detailsModal.pos.address.pincode}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bank Details */}
+                  {detailsModal.pos.bankDetails && detailsModal.pos.bankDetails.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <CreditCard className="w-5 h-5 text-[#01A63C]" />
+                        <h3 className="text-lg font-semibold text-gray-900">Bank Details</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {detailsModal.pos.bankDetails.map((bank) => (
+                          <div key={bank._id} className="border-l-4 border-[#01A63C] pl-4">
+                            <div className="grid grid-cols-1 gap-2">
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Bank Name</label>
+                                <p className="text-sm text-gray-900">{bank.bankName}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Account Holder</label>
+                                <p className="text-sm text-gray-900">{bank.accountHolderName}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Account Number</label>
+                                <p className="text-sm text-gray-900">{bank.accountNumber}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">IFSC Code</label>
+                                <p className="text-sm text-gray-900">{bank.ifscCode}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Branch</label>
+                                <p className="text-sm text-gray-900">{bank.branch}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Other Details */}
+                  {detailsModal.pos.otherDetails && detailsModal.pos.otherDetails.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <FileText className="w-5 h-5 text-[#01A63C]" />
+                        <h3 className="text-lg font-semibold text-gray-900">Other Details</h3>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {detailsModal.pos.otherDetails.map((detail) => (
+                          <div key={detail._id}>
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Crops Handled</label>
+                              <p className="text-sm text-gray-900">
+                                {detail.cropsHandled && detail.cropsHandled.length > 0 
+                                  ? detail.cropsHandled.join(', ') 
+                                  : 'No crops specified'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Crops</label>
+                              <p className="text-sm text-gray-900">
+                                {detail.crops && detail.crops.length > 0 
+                                  ? detail.crops.join(', ') 
+                                  : 'No crops specified'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Verification Status */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Verification Status</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Profile Status</span>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          detailsModal.pos.profileStatus === 'completed' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {detailsModal.pos.profileStatus}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Overall Verification</span>
+                        {detailsModal.pos.isVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Mobile Verified</span>
+                        {detailsModal.pos.mobileVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Bank Verified</span>
+                        {detailsModal.pos.bankVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Other Details Verified</span>
+                        {detailsModal.pos.otherDetailsVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Information */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Calendar className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Account Information</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Account Created</label>
+                        <p className="text-sm text-gray-900">{formatDetailedDate(detailsModal.pos.createdAt)}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Last Updated</label>
+                        <p className="text-sm text-gray-900">{formatDetailedDate(detailsModal.pos.updatedAt)}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">POS ID</label>
+                        <p className="text-sm text-gray-900">{detailsModal.pos._id}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">Failed to load POS details</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteModal.isOpen && deleteModal.pos && (
-        <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="flex-shrink-0">
