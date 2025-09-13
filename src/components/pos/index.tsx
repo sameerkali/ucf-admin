@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, Users, AlertTriangle, X, ChevronLeft, ChevronRight, Plus, Store } from 'lucide-react';
+import { Search, Trash2, AlertTriangle, X, ChevronLeft, ChevronRight, Plus, Store } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAppSelector } from '../../reducers/store';
