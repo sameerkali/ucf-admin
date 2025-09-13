@@ -8,28 +8,44 @@ import { BASE_URL } from '../../utils/constants';
 interface Farmer {
   _id: string;
   name: string;
-  email: string;
-  phone?: string;
+  fatherName: string;
+  mobile: string;
+  adharNo: string;
+  address: {
+    state: string;
+    district: string;
+    tehsil: string;
+    block: string;
+    village: string;
+    pincode: string;
+  };
   role: string;
   createdAt: string;
   updatedAt: string;
-  isActive?: boolean;
+  isVerified: boolean;
+  mobileVerified: boolean;
+  bankVerified: boolean;
+  otherDetailsVerified: boolean;
+  profileStatus: string;
+  authMethod: string;
+  posId?: string;
+  isVerifiedBy?: {
+    userId: string;
+    role: string;
+  };
 }
 
 interface GetFarmersResponse {
   success: boolean;
-  data: {
-    users: Farmer[];
-    totalUsers: number;
-    totalPages: number;
-    currentPage: number;
-  };
-  message: string;
+  page: number;
+  totalPages: number;
+  totalUsers: number;
+  users: Farmer[];
 }
 
 const Farmer: React.FC = () => {
   const { token } = useAppSelector((state) => state.auth);
-  console.log("token:",token)
+  console.log("token:", token);
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,20 +78,20 @@ const Farmer: React.FC = () => {
         sort: 'asc'
       };
 
-      const response = await axios.get(`${BASE_URL}api/admin/get-all-users`, {
+      const response = await axios.post(`${BASE_URL}api/admin/get-all-users`, requestData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        data: requestData
+        }
       });
 
       const data: GetFarmersResponse = response.data;
       
       if (data.success) {
-        setFarmers(data.data.users);
-        setTotalPages(data.data.totalPages);
-        setTotalFarmers(data.data.totalUsers);
+        setFarmers(data.users);
+        setTotalPages(data.totalPages);
+        setTotalFarmers(data.totalUsers);
+        setCurrentPage(data.page);
       } else {
         toast.error('Failed to fetch farmers');
       }
@@ -105,7 +121,7 @@ const Farmer: React.FC = () => {
     }
 
     try {
-      const response = await axios.delete(`${BASE_URL}/delete-user`, {
+      const response = await axios.delete(`${BASE_URL}api/admin/delete-user`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -166,6 +182,32 @@ const Farmer: React.FC = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Format address
+  const formatAddress = (address: Farmer['address']) => {
+    const parts = [address.village, address.block, address.tehsil, address.district, address.state].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  // Get status color and text
+  const getStatusInfo = (farmer: Farmer) => {
+    if (farmer.profileStatus === 'completed' && farmer.isVerified) {
+      return {
+        color: 'bg-green-100 text-green-800',
+        text: 'Verified'
+      };
+    } else if (farmer.profileStatus === 'completed' && !farmer.isVerified) {
+      return {
+        color: 'bg-yellow-100 text-yellow-800',
+        text: 'Pending Verification'
+      };
+    } else {
+      return {
+        color: 'bg-red-100 text-red-800',
+        text: 'Incomplete'
+      };
+    }
   };
 
   if (!token) {
@@ -231,13 +273,16 @@ const Farmer: React.FC = () => {
                   Farmer Details
                 </th>
                 <th className="px-4 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
+                  Contact & ID
                 </th>
                 <th className="px-4 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Joined Date
+                  Address
                 </th>
                 <th className="px-4 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-4 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Joined Date
                 </th>
                 <th className="px-4 md:px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -247,7 +292,7 @@ const Farmer: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#01A63C]"></div>
                       <span className="ml-3 text-gray-500">Loading farmers...</span>
@@ -256,7 +301,7 @@ const Farmer: React.FC = () => {
                 </tr>
               ) : farmers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No farmers found</h3>
                     <p className="text-gray-500">
@@ -265,56 +310,75 @@ const Farmer: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                farmers.map((farmer) => (
-                  <tr key={farmer._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 md:px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-[#01A63C] flex items-center justify-center">
-                            <span className="text-sm font-medium text-white">
-                              {farmer.name.charAt(0).toUpperCase()}
+                farmers.map((farmer) => {
+                  const statusInfo = getStatusInfo(farmer);
+                  return (
+                    <tr key={farmer._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 md:px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-[#01A63C] flex items-center justify-center">
+                              <span className="text-sm font-medium text-white">
+                                {farmer.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {farmer.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Father: {farmer.fatherName}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 md:px-6 py-4">
+                        <div className="text-sm text-gray-900">{farmer.mobile}</div>
+                        <div className="text-sm text-gray-500">
+                          Aadhar: {farmer.adharNo}
+                        </div>
+                      </td>
+                      <td className="px-4 md:px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs">
+                          <div className="truncate" title={formatAddress(farmer.address)}>
+                            {formatAddress(farmer.address)}
+                          </div>
+                          <div className="text-gray-500">{farmer.address.pincode}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 md:px-6 py-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.color}`}>
+                          {statusInfo.text}
+                        </span>
+                        <div className="flex gap-1 mt-1">
+                          {farmer.mobileVerified && (
+                            <span className="inline-flex px-1 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                              Mobile ✓
                             </span>
-                          </div>
+                          )}
+                          {farmer.bankVerified && (
+                            <span className="inline-flex px-1 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
+                              Bank ✓
+                            </span>
+                          )}
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {farmer.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {farmer._id.slice(-8)}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4">
-                      <div className="text-sm text-gray-900">{farmer.email}</div>
-                      {farmer.phone && (
-                        <div className="text-sm text-gray-500">{farmer.phone}</div>
-                      )}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-sm text-gray-500">
-                      {formatDate(farmer.createdAt)}
-                    </td>
-                    <td className="px-4 md:px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        farmer.isActive !== false 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {farmer.isActive !== false ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-right">
-                      <button
-                        onClick={() => setDeleteModal({ isOpen: true, farmer })}
-                        className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete farmer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-4 md:px-6 py-4 text-sm text-gray-500">
+                        {formatDate(farmer.createdAt)}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 text-right">
+                        <button
+                          onClick={() => setDeleteModal({ isOpen: true, farmer })}
+                          className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete farmer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -462,4 +526,4 @@ const Farmer: React.FC = () => {
   );
 };
 
-export default Farmer
+export default Farmer;

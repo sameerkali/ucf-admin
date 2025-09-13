@@ -3,6 +3,7 @@ import { Search, Trash2, Users, AlertTriangle, X, ChevronLeft, ChevronRight, Plu
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAppSelector } from '../../reducers/store';
+import { BASE_URL } from '../../utils/constants';
 
 interface POS {
   _id: string;
@@ -12,7 +13,11 @@ interface POS {
   role: string;
   createdAt: string;
   updatedAt: string;
-  isActive?: boolean;
+  isVerified: boolean;
+  mobileVerified: boolean;
+  bankVerified: boolean;
+  otherDetailsVerified: boolean;
+  profileStatus: string;
   address: {
     state: string;
     district: string;
@@ -23,15 +28,13 @@ interface POS {
   };
 }
 
+// Updated interface to match actual API response
 interface GetPOSResponse {
   success: boolean;
-  data: {
-    users: POS[];
-    totalUsers: number;
-    totalPages: number;
-    currentPage: number;
-  };
-  message: string;
+  page: number;
+  totalPages: number;
+  totalUsers: number;
+  users: POS[];
 }
 
 interface CreatePOSData {
@@ -65,7 +68,6 @@ const POS: React.FC = () => {
   }>({ isOpen: false, pos: null });
 
   const ITEMS_PER_PAGE = 8;
-  const BASE_URL = 'https://ufc-backend-seven.vercel.app/api/admin';
 
   const [formData, setFormData] = useState<CreatePOSData>({
     name: '',
@@ -82,7 +84,7 @@ const POS: React.FC = () => {
     }
   });
 
-  // Fetch POS data
+  // Fetch POS data - FIXED
   const fetchPOSList = async (page: number = currentPage, name: string = searchTerm) => {
     if (!token) {
       toast.error('Authentication token not found');
@@ -101,20 +103,21 @@ const POS: React.FC = () => {
         sort: 'asc'
       };
 
-      const response = await axios.get(`${BASE_URL}/get-all-users`, {
+      const response = await axios.post(`${BASE_URL}api/admin/get-all-users`, requestData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        data: requestData
+        }
       });
 
       const data: GetPOSResponse = response.data;
       
       if (data.success) {
-        setPOSList(data.data.users);
-        setTotalPages(data.data.totalPages);
-        setTotalPOS(data.data.totalUsers);
+        // FIXED: Direct access to response fields
+        setPOSList(data.users);
+        setTotalPages(data.totalPages);
+        setTotalPOS(data.totalUsers);
+        setCurrentPage(data.page);
       } else {
         toast.error('Failed to fetch POS list');
       }
@@ -136,7 +139,7 @@ const POS: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // Handle create POS
+  // Handle create POS - FIXED URL
   const handleCreatePOS = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -153,7 +156,7 @@ const POS: React.FC = () => {
 
     setCreating(true);
     try {
-      const response = await axios.post(`${BASE_URL}/create-pos`, formData, {
+      const response = await axios.post(`${BASE_URL}api/admin/create-pos`, formData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -193,7 +196,7 @@ const POS: React.FC = () => {
     }
   };
 
-  // Handle delete
+  // Handle delete - FIXED URL
   const handleDelete = async (pos: POS) => {
     if (!token) {
       toast.error('Authentication token not found');
@@ -201,7 +204,7 @@ const POS: React.FC = () => {
     }
 
     try {
-      const response = await axios.delete(`${BASE_URL}/delete-user`, {
+      const response = await axios.delete(`${BASE_URL}api/admin/delete-user`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -239,26 +242,25 @@ const POS: React.FC = () => {
 
   // Handle form input change
   const handleInputChange = (field: string, value: string) => {
-  setFormData(prev => {
-    if (field.includes(".")) {
-      const [parent, child] = field.split(".");
+    setFormData(prev => {
+      if (field.includes(".")) {
+        const [parent, child] = field.split(".");
 
-      return {
-        ...prev,
-        [parent]: {
-          ...(prev[parent as keyof CreatePOSData] as Record<string, any>),
-          [child]: value,
-        },
-      };
-    } else {
-      return {
-        ...prev,
-        [field]: value,
-      };
-    }
-  });
-};
-
+        return {
+          ...prev,
+          [parent]: {
+            ...(prev[parent as keyof CreatePOSData] as Record<string, any>),
+            [child]: value,
+          },
+        };
+      } else {
+        return {
+          ...prev,
+          [field]: value,
+        };
+      }
+    });
+  };
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -271,8 +273,33 @@ const POS: React.FC = () => {
 
   // Format address
   const formatAddress = (address: POS['address']) => {
-    const parts = [address.village, address.block, address.tehsil, address.district, address.state, address.pincode].filter(Boolean);
+    const parts = [address.village, address.block, address.tehsil, address.district, address.state].filter(Boolean);
     return parts.join(', ');
+  };
+
+  // Get status info based on verification
+  const getStatusInfo = (pos: POS) => {
+    if (pos.profileStatus === 'completed' && pos.isVerified) {
+      return {
+        color: 'bg-green-100 text-green-800',
+        text: 'Verified'
+      };
+    } else if (pos.profileStatus === 'completed' && !pos.isVerified) {
+      return {
+        color: 'bg-yellow-100 text-yellow-800',
+        text: 'Pending Verification'
+      };
+    } else if (pos.profileStatus === 'incomplete') {
+      return {
+        color: 'bg-orange-100 text-orange-800',
+        text: 'Incomplete'
+      };
+    } else {
+      return {
+        color: 'bg-gray-100 text-gray-800',
+        text: 'Pending'
+      };
+    }
   };
 
   // Effects
@@ -368,6 +395,9 @@ const POS: React.FC = () => {
                   Address
                 </th>
                 <th className="px-4 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created Date
                 </th>
                 <th className="px-4 md:px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -378,7 +408,7 @@ const POS: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#01A63C]"></div>
                       <span className="ml-3 text-gray-500">Loading POS...</span>
@@ -387,7 +417,7 @@ const POS: React.FC = () => {
                 </tr>
               ) : posList.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <Store className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No POS found</h3>
                     <p className="text-gray-500">
@@ -396,50 +426,73 @@ const POS: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                posList.map((pos) => (
-                  <tr key={pos._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 md:px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-[#01A63C] flex items-center justify-center">
-                            <span className="text-sm font-medium text-white">
-                              {pos.name.charAt(0).toUpperCase()}
+                posList.map((pos) => {
+                  const statusInfo = getStatusInfo(pos);
+                  return (
+                    <tr key={pos._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 md:px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-[#01A63C] flex items-center justify-center">
+                              <span className="text-sm font-medium text-white">
+                                {pos.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {pos.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              ID: {pos._id.slice(-8)}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 md:px-6 py-4">
+                        <div className="text-sm text-gray-900">{pos.email}</div>
+                        <div className="text-sm text-gray-500">{pos.mobile}</div>
+                      </td>
+                      <td className="px-4 md:px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs">
+                          <div className="truncate" title={formatAddress(pos.address)}>
+                            {formatAddress(pos.address)}
+                          </div>
+                          <div className="text-gray-500">{pos.address.pincode}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 md:px-6 py-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.color}`}>
+                          {statusInfo.text}
+                        </span>
+                        <div className="flex gap-1 mt-1">
+                          {pos.mobileVerified && (
+                            <span className="inline-flex px-1 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                              Mobile ✓
                             </span>
-                          </div>
+                          )}
+                          {pos.bankVerified && (
+                            <span className="inline-flex px-1 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
+                              Bank ✓
+                            </span>
+                          )}
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {pos.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {pos._id.slice(-8)}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4">
-                      <div className="text-sm text-gray-900">{pos.email}</div>
-                      <div className="text-sm text-gray-500">{pos.mobile}</div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate" title={formatAddress(pos.address)}>
-                        {formatAddress(pos.address)}
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-sm text-gray-500">
-                      {formatDate(pos.createdAt)}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-right">
-                      <button
-                        onClick={() => setDeleteModal({ isOpen: true, pos })}
-                        className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete POS"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-4 md:px-6 py-4 text-sm text-gray-500">
+                        {formatDate(pos.createdAt)}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 text-right">
+                        <button
+                          onClick={() => setDeleteModal({ isOpen: true, pos })}
+                          className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete POS"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -534,7 +587,7 @@ const POS: React.FC = () => {
 
       {/* Create POS Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleCreatePOS} className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -699,7 +752,7 @@ const POS: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModal.isOpen && deleteModal.pos && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="flex-shrink-0">
@@ -752,6 +805,4 @@ const POS: React.FC = () => {
   );
 };
 
-
-
-export default POS
+export default POS;
