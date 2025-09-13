@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, AlertTriangle, X, ChevronLeft, ChevronRight, Plus, Store, Eye, User, MapPin, Calendar, CheckCircle, XCircle, CreditCard, FileText } from 'lucide-react';
+import { Search, Trash2, AlertTriangle, X, ChevronLeft, ChevronRight, Plus, Store, Eye, User, MapPin, Calendar, CheckCircle, XCircle, CreditCard, FileText, ClipboardCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAppSelector } from '../../reducers/store';
 import { BASE_URL } from '../../utils/constants';
+import RequestReview from '../ui/RequestReview';
 
 interface BankDetail {
   _id: string;
@@ -90,6 +91,7 @@ const POS: React.FC = () => {
   const [totalPOS, setTotalPOS] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [showRequestReview, setShowRequestReview] = useState(false);
   
   // Modal states
   const [deleteModal, setDeleteModal] = useState<{
@@ -321,7 +323,6 @@ const POS: React.FC = () => {
     setFormData(prev => {
       if (field.includes(".")) {
         const [parent, child] = field.split(".");
-
         return {
           ...prev,
           [parent]: {
@@ -454,6 +455,13 @@ const POS: React.FC = () => {
             <span className="bg-[#01A63C]/10 text-[#01A63C] px-3 py-1 rounded-full font-medium text-sm">
               Total: {totalPOS} POS
             </span>
+            <button
+              onClick={() => setShowRequestReview(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              Review Requests
+            </button>
             <button
               onClick={() => setShowCreateModal(true)}
               className="bg-[#01A63C] hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -1146,6 +1154,12 @@ const POS: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Request Review Modal */}
+      <RequestReview 
+        isOpen={showRequestReview} 
+        onClose={() => setShowRequestReview(false)} 
+      />
     </div>
   );
 };
