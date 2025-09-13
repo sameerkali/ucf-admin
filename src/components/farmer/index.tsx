@@ -1,9 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, Users, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Trash2, Users, AlertTriangle, X, ChevronLeft, ChevronRight, Eye, User, Phone, MapPin, Calendar, CheckCircle, XCircle, CreditCard, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAppSelector } from '../../reducers/store';
 import { BASE_URL } from '../../utils/constants';
+
+interface BankDetail {
+  _id: string;
+  bankName: string;
+  accountHolderName: string;
+  accountNumber: string;
+  ifscCode: string;
+  branch: string;
+  user: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface OtherDetail {
+  _id: string;
+  user: string;
+  role: string;
+  cropsHandled: string[];
+  crops: string[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface Farmer {
   _id: string;
@@ -35,6 +58,11 @@ interface Farmer {
   };
 }
 
+interface FarmerDetails extends Farmer {
+  bankDetails?: BankDetail[];
+  otherDetails?: OtherDetail[];
+}
+
 interface GetFarmersResponse {
   success: boolean;
   page: number;
@@ -45,17 +73,24 @@ interface GetFarmersResponse {
 
 const Farmer: React.FC = () => {
   const { token } = useAppSelector((state) => state.auth);
-  console.log("token:", token);
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalFarmers, setTotalFarmers] = useState(0);
+  
+  // Modal states
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     farmer: Farmer | null;
   }>({ isOpen: false, farmer: null });
+  
+  const [detailsModal, setDetailsModal] = useState<{
+    isOpen: boolean;
+    farmer: FarmerDetails | null;
+    loading: boolean;
+  }>({ isOpen: false, farmer: null, loading: false });
 
   const ITEMS_PER_PAGE = 8;
 
@@ -107,10 +142,52 @@ const Farmer: React.FC = () => {
     }
   };
 
+  // Fetch farmer details
+  const fetchFarmerDetails = async (farmerId: string) => {
+    if (!token) {
+      toast.error('Authentication token not found');
+      return;
+    }
+
+    setDetailsModal(prev => ({ ...prev, loading: true }));
+    try {
+      const response = await axios.post(`${BASE_URL}api/admin/get-user-details`, {
+        id: farmerId,
+        role: "Farmer"
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success && response.data.data && response.data.data.length > 0) {
+        setDetailsModal(prev => ({ 
+          ...prev, 
+          farmer: response.data.data[0],  // Take first element from array
+          loading: false 
+        }));
+      } else {
+        toast.error('Failed to fetch farmer details');
+        setDetailsModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error: any) {
+      console.error('Error fetching farmer details:', error);
+      toast.error('Failed to fetch farmer details');
+      setDetailsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   // Handle search
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
+  };
+
+  // Handle view details
+  const handleViewDetails = (farmer: Farmer) => {
+    setDetailsModal({ isOpen: true, farmer: null, loading: true });
+    fetchFarmerDetails(farmer._id);
   };
 
   // Handle delete
@@ -137,7 +214,6 @@ const Farmer: React.FC = () => {
       if (data.success) {
         toast.success(`${farmer.name} has been deleted successfully`);
         setDeleteModal({ isOpen: false, farmer: null });
-        // Refresh the list
         fetchFarmers(currentPage, searchTerm);
       } else {
         toast.error(data.message || 'Failed to delete farmer');
@@ -181,6 +257,16 @@ const Farmer: React.FC = () => {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
+    });
+  };
+
+  const formatDetailedDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -368,13 +454,22 @@ const Farmer: React.FC = () => {
                         {formatDate(farmer.createdAt)}
                       </td>
                       <td className="px-4 md:px-6 py-4 text-right">
-                        <button
-                          onClick={() => setDeleteModal({ isOpen: true, farmer })}
-                          className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete farmer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleViewDetails(farmer)}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Details
+                          </button>
+                          <button
+                            onClick={() => setDeleteModal({ isOpen: true, farmer })}
+                            className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete farmer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -518,6 +613,265 @@ const Farmer: React.FC = () => {
               >
                 Delete Farmer
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Farmer Details Modal */}
+      {detailsModal.isOpen && (
+        <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Farmer Details</h2>
+                <button
+                  onClick={() => setDetailsModal({ isOpen: false, farmer: null, loading: false })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {detailsModal.loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01A63C]"></div>
+                  <span className="ml-3 text-gray-500">Loading farmer details...</span>
+                </div>
+              ) : detailsModal.farmer ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Personal Information */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <User className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <div className="h-16 w-16 rounded-full bg-[#01A63C] flex items-center justify-center mr-4">
+                          <span className="text-xl font-bold text-white">
+                            {detailsModal.farmer.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-900">{detailsModal.farmer.name}</h4>
+                          <p className="text-sm text-gray-500">S/O {detailsModal.farmer.fatherName}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Mobile Number</label>
+                          <p className="text-sm text-gray-900">{detailsModal.farmer.mobile}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Aadhaar Number</label>
+                          <p className="text-sm text-gray-900">{detailsModal.farmer.adharNo}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Authentication Method</label>
+                          <p className="text-sm text-gray-900 capitalize">{detailsModal.farmer.authMethod}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Information */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <MapPin className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Address Information</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Complete Address</label>
+                        <p className="text-sm text-gray-900">
+                          {detailsModal.farmer.address.village}, {detailsModal.farmer.address.block},<br />
+                          {detailsModal.farmer.address.tehsil}, {detailsModal.farmer.address.district},<br />
+                          {detailsModal.farmer.address.state} - {detailsModal.farmer.address.pincode}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bank Details */}
+                  {detailsModal.farmer.bankDetails && detailsModal.farmer.bankDetails.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <CreditCard className="w-5 h-5 text-[#01A63C]" />
+                        <h3 className="text-lg font-semibold text-gray-900">Bank Details</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {detailsModal.farmer.bankDetails.map((bank, index) => (
+                          <div key={bank._id} className="border-l-4 border-[#01A63C] pl-4">
+                            <div className="grid grid-cols-1 gap-2">
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Bank Name</label>
+                                <p className="text-sm text-gray-900">{bank.bankName}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Account Holder</label>
+                                <p className="text-sm text-gray-900">{bank.accountHolderName}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Account Number</label>
+                                <p className="text-sm text-gray-900">{bank.accountNumber}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">IFSC Code</label>
+                                <p className="text-sm text-gray-900">{bank.ifscCode}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Branch</label>
+                                <p className="text-sm text-gray-900">{bank.branch}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Other Details */}
+                  {detailsModal.farmer.otherDetails && detailsModal.farmer.otherDetails.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <FileText className="w-5 h-5 text-[#01A63C]" />
+                        <h3 className="text-lg font-semibold text-gray-900">Other Details</h3>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {detailsModal.farmer.otherDetails.map((detail, index) => (
+                          <div key={detail._id}>
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Crops Handled</label>
+                              <p className="text-sm text-gray-900">
+                                {detail.cropsHandled && detail.cropsHandled.length > 0 
+                                  ? detail.cropsHandled.join(', ') 
+                                  : 'No crops specified'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Crops</label>
+                              <p className="text-sm text-gray-900">
+                                {detail.crops && detail.crops.length > 0 
+                                  ? detail.crops.join(', ') 
+                                  : 'No crops specified'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Verification Status */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Verification Status</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Profile Status</span>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          detailsModal.farmer.profileStatus === 'completed' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {detailsModal.farmer.profileStatus}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Overall Verification</span>
+                        {detailsModal.farmer.isVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Mobile Verified</span>
+                        {detailsModal.farmer.mobileVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Bank Verified</span>
+                        {detailsModal.farmer.bankVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Other Details Verified</span>
+                        {detailsModal.farmer.otherDetailsVerified ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Information */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Calendar className="w-5 h-5 text-[#01A63C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Account Information</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Account Created</label>
+                        <p className="text-sm text-gray-900">{formatDetailedDate(detailsModal.farmer.createdAt)}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Last Updated</label>
+                        <p className="text-sm text-gray-900">{formatDetailedDate(detailsModal.farmer.updatedAt)}</p>
+                      </div>
+                      
+                      {detailsModal.farmer.posId && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Associated POS ID</label>
+                          <p className="text-sm text-gray-900">{detailsModal.farmer.posId}</p>
+                        </div>
+                      )}
+                      
+                      {detailsModal.farmer.isVerifiedBy && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Verified By</label>
+                          <p className="text-sm text-gray-900">
+                            {detailsModal.farmer.isVerifiedBy.role} (ID: {detailsModal.farmer.isVerifiedBy.userId.slice(-8)})
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">Failed to load farmer details</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
