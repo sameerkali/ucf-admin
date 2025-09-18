@@ -7,7 +7,8 @@ import {
   X,
   DatabaseBackup,
   TableOfContentsIcon,
-  TreeDeciduous
+  TreeDeciduous,
+  MessageCircle
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../reducers/store";
 import { logout } from "../reducers/auth.reducer";
@@ -18,6 +19,7 @@ const navItems = [
   { name: "Farmer", path: "/farmer", icon: <Users /> },
   { name: "Crop", path: "/crop", icon: <TreeDeciduous /> },
   { name: "Content", path: "/content", icon: <TableOfContentsIcon /> },
+  { name: "Messages", path: "/messages", icon: <MessageCircle /> },
 ];
 
 interface SidebarProps {
