@@ -11,7 +11,6 @@ import {
   ChevronUp,
   HelpCircle,
   Eye,
-  Check,
   FileText,
   MessageSquare,
   AlertTriangle,
@@ -20,7 +19,6 @@ import {
 } from 'lucide-react';
 import { BASE_URL } from '../../utils/constants';
 
-// --- TYPE DEFINITIONS ---
 interface APIResponse<T> {
   success: boolean;
   data: T;
@@ -414,7 +412,7 @@ const Faq: React.FC = () => {
 
   // Since API doesn't support publish/unpublish, we'll remove this functionality
   const publishedFaqs = faqs; // All FAQs are considered published
-  const draftFaqs: FAQ[] = []; // No drafts from API
+  
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
