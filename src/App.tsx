@@ -11,6 +11,7 @@ import POS from "./components/pos";
 import Farmer from "./components/farmer";
 import Faq from "./components/content/Faq";
 import Content from "./components/content";
+import Crop from "./components/crop";
 
 // Protects private routes
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -51,6 +52,7 @@ function App() {
           <Route path="/farmer" element={<Farmer/>} />
           <Route path="/content" element={<Content/>} />
           <Route path="/faq" element={<Faq/>} />
+          <Route path="/crop" element={<Crop/>} />
         </Route>
 
         {/* Profile Page (also private) */}

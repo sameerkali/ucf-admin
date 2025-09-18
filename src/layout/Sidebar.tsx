@@ -6,7 +6,8 @@ import {
   LogOut,
   X,
   DatabaseBackup,
-  TableOfContentsIcon
+  TableOfContentsIcon,
+  TreeDeciduous
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../reducers/store";
 import { logout } from "../reducers/auth.reducer";
@@ -15,6 +16,7 @@ const navItems = [
   { name: "Dashboard", path: "/", icon: <DatabaseBackup /> },
   { name: "POS", path: "/pos", icon: <ShoppingCart /> },
   { name: "Farmer", path: "/farmer", icon: <Users /> },
+  { name: "Crop", path: "/crop", icon: <TreeDeciduous /> },
   { name: "Content", path: "/content", icon: <TableOfContentsIcon /> },
 ];
 
