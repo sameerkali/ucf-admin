@@ -109,7 +109,7 @@ export default function LoginForm() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="max-w-sm w-full space-y-5"
+      className="w-full max-w-sm mx-auto lg:mx-0 space-y-4 sm:space-y-5"
       role="form"
       aria-label="Login form"
     >
@@ -132,7 +132,7 @@ export default function LoginForm() {
               message: "Invalid email address"
             }
           })}
-          className={`w-full rounded-md px-4 py-2 border outline-none text-sm transition ${
+          className={`w-full rounded-md px-3 sm:px-4 py-2.5 sm:py-2 border outline-none text-sm transition ${
             errors.email
               ? "border-red-400 placeholder-red-500"
               : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -159,7 +159,7 @@ export default function LoginForm() {
             placeholder="Enter your password"
             aria-describedby={errors.password ? "password-error" : undefined}
             {...register("password", { required: "Password is required" })}
-            className={`w-full rounded-md px-4 py-2 pr-12 border outline-none text-sm transition ${
+            className={`w-full rounded-md px-3 sm:px-4 py-2.5 sm:py-2 pr-10 sm:pr-12 border outline-none text-sm transition ${
               errors.password
                 ? "border-red-400 placeholder-red-500"
                 : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -168,7 +168,7 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={togglePasswordVisibility}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition p-1"
             aria-label={showPassword ? "Hide password" : "Show password"}
             tabIndex={0}
           >
@@ -186,11 +186,11 @@ export default function LoginForm() {
         )}
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 pt-2">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold py-2 rounded-md transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold py-2.5 sm:py-2 rounded-md transition focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-label={isSubmitting ? "Signing in..." : "Sign in"}
         >
           {isSubmitting ? (
@@ -201,7 +201,7 @@ export default function LoginForm() {
         </button>
       </div>
 
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between text-xs text-gray-400 pt-2">
         <span className="cursor-not-allowed">Forgot Password?</span>
         <span className="cursor-not-allowed">Help</span>
       </div>

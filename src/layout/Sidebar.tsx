@@ -155,7 +155,7 @@ export default function Sidebar({ isMobileMenuOpen, closeMobileMenu }: SidebarPr
       {/* Logout Modal */}
       {showLogoutModal && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
           onClick={handleLogoutCancel}
           role="dialog"
           aria-modal="true"
