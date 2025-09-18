@@ -38,13 +38,6 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// Helper function to get status color based on isRead
-const getStatusColor = (isRead: boolean): string => {
-  return isRead 
-    ? 'bg-green-100 text-green-800 border-green-200'
-    : 'bg-yellow-100 text-yellow-800 border-yellow-200';
-};
-
 // Helper function to get role color
 const getRoleColor = (role: string): string => {
   switch (role.toLowerCase()) {
@@ -57,11 +50,6 @@ const getRoleColor = (role: string): string => {
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200';
   }
-};
-
-// Helper function to get user initials
-const getUserInitials = (role: string): string => {
-  return role.slice(0, 2).toUpperCase();
 };
 
 const Messages: React.FC = () => {
@@ -118,9 +106,8 @@ const Messages: React.FC = () => {
         throw new Error('Admin token not found');
       }
 
-      const response = await axios.post(
-        `${BASE_URL}/api/support/delete`,
-        { id: messageId },
+      const response = await axios.delete(
+        `${BASE_URL}api/support/delete/${messageId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -145,8 +132,8 @@ const Messages: React.FC = () => {
     }
   };
 
-  // Handle user icon click
-  const handleUserIconClick = (userId: string): void => {
+  // Handle show profile click
+  const handleShowProfile = (userId: string): void => {
     navigator.clipboard.writeText(userId);
     toast.info(`User ID: ${userId}`, {
       position: "top-right",
@@ -250,73 +237,59 @@ const Messages: React.FC = () => {
             ) : (
               messages.map((message) => (
                 <div key={message._id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start space-x-4">
-                    {/* User Icon */}
-                    <button
-                      onClick={() => handleUserIconClick(message.user)}
-                      className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 cursor-pointer group"
-                      title="Click to copy User ID"
-                    >
-                      {getUserInitials(message.role)}
-                    </button>
-
+                  <div className="flex items-start justify-between">
                     {/* Message Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 truncate">
-                            Support Message
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(message.role)}`}>
-                              {message.role}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(message.isRead)}`}>
-                            {message.isRead ? 'READ' : 'UNREAD'}
-                          </span>
-                        </div>
+                    <div className="flex-1 min-w-0 pr-4">
+                      {/* Message Text in Big Font */}
+                      <h2 className="text-xl font-semibold text-gray-900 mb-3 leading-relaxed">
+                        {message.text}
+                      </h2>
+
+                      {/* Role and Date */}
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(message.role)}`}>
+                          {message.role}
+                        </span>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-sm text-gray-500 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {formatDate(message.createdAt)}
+                        </span>
                       </div>
 
-                      <p className="text-gray-700 mb-4 leading-relaxed">
-                        {message.text}
-                      </p>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div className="flex items-center text-sm text-gray-500 gap-4">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {formatDate(message.createdAt)}
-                          </span>
-                          <span className="text-gray-400">•</span>
-                          <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                            ID: {message._id.slice(-8)}
-                          </span>
-                        </div>
-
-                        <button
-                          onClick={() => deleteMessage(message._id)}
-                          disabled={deletingId === message._id}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {deletingId === message._id ? (
-                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => deleteMessage(message._id)}
+                        disabled={deletingId === message._id}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingId === message._id ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           )}
-                          {deletingId === message._id ? 'Deleting...' : 'Delete'}
-                        </button>
-                      </div>
+                        {deletingId === message._id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </div>
+
+                    {/* Show Profile Button */}
+                    <button
+                      onClick={() => handleShowProfile(message.user)}
+                      className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                      title="Click to view user profile"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Show Profile
+                    </button>
                   </div>
                 </div>
               ))
