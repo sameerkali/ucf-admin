@@ -9,6 +9,8 @@ import { useAppSelector } from "./reducers/store";
 import type { JSX } from "react";
 import POS from "./components/pos";
 import Farmer from "./components/farmer";
+import Faq from "./components/content/Faq";
+import Content from "./components/content";
 
 // Protects private routes
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -47,6 +49,8 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/pos" element={<POS/>} />
           <Route path="/farmer" element={<Farmer/>} />
+          <Route path="/content" element={<Content/>} />
+          <Route path="/faq" element={<Faq/>} />
         </Route>
 
         {/* Profile Page (also private) */}

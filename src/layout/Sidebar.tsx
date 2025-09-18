@@ -5,7 +5,8 @@ import {
   Users,
   LogOut,
   X,
-  DatabaseBackup
+  DatabaseBackup,
+  TableOfContentsIcon
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../reducers/store";
 import { logout } from "../reducers/auth.reducer";
@@ -14,6 +15,7 @@ const navItems = [
   { name: "Dashboard", path: "/", icon: <DatabaseBackup /> },
   { name: "POS", path: "/pos", icon: <ShoppingCart /> },
   { name: "Farmer", path: "/farmer", icon: <Users /> },
+  { name: "Content", path: "/content", icon: <TableOfContentsIcon /> },
 ];
 
 interface SidebarProps {
