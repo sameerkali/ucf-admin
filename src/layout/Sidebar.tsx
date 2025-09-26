@@ -9,7 +9,8 @@ import {
   TableOfContentsIcon,
   TreeDeciduous,
   MessageCircle,
-  PercentDiamond
+  PercentDiamond,
+  ListOrdered
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../reducers/store";
 import { logout } from "../reducers/auth.reducer";
@@ -22,6 +23,7 @@ const navItems = [
   { name: "Content", path: "/content", icon: <TableOfContentsIcon /> },
   { name: "Messages", path: "/messages", icon: <MessageCircle /> },
   { name: "Products", path: "/products", icon: <PercentDiamond /> },
+  { name: "Orders", path: "/orders", icon: <ListOrdered /> },
 ];
 
 interface SidebarProps {

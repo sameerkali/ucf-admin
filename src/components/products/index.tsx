@@ -73,7 +73,7 @@ const Products: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const limit = 4;
+  const limit = 10;
 
   // API Configuration
   const getAuthHeaders = () => {

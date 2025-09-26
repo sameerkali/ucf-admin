@@ -14,6 +14,7 @@ import Content from "./components/content";
 import Crop from "./components/crop";
 import Messages from "./components/helpAndSupportMessages";
 import Products from "./components/products";
+import Order from "./components/order";
 
 // Protects private routes
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -57,6 +58,8 @@ function App() {
           <Route path="/crop" element={<Crop/>} />
           <Route path="/messages" element={<Messages/>} />
           <Route path="/products" element={<Products/>} />
+          <Route path="/orders" element={<Order
+          />} />
         </Route>
 
         {/* Profile Page (also private) */}
